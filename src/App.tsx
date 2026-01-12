@@ -1,37 +1,56 @@
 import {useEffect,useState} from 'react';
-import { Table, Card, Tag, Statistic, Row, Col, Button } from 'antd';
-import { ArrowUpOutlined, ReloadOutlined } from '@ant-design/icons';
+import { Table, Card, Tag, Statistic, Row, Col, Button ,Modal, Form, InputNumber,message,Popconfirm,Input} from 'antd';
+import { ArrowUpOutlined, DeleteOutlined, ReloadOutlined,PlusOutlined } from '@ant-design/icons';
 import { fetchFundData } from './services/api';
 import {type FundItem } from './types';
 
+interface LocalFund {
+  code:string;
+  costPrice:number; //持仓成本价
+  amount:number;    //投入金额
+}
 
-// 配置你的持仓数据（这里暂时写死，以后可以做成输入框）
-const MY_FUNDS = [
-  { code: '017435', cost: 1.0500, share: 1000 }, // 假设你的成本和份额
-  { code: '017747', cost: 0.8000, share: 50 }
-];
 
 function App() {
   const [data,setData] = useState<FundItem[]>([]);
 
   const [loading,setLoading] = useState(false);
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  //初始化，从LocalStorage读取数据
+  const [myFunds,setMyFunds] = useState<LocalFund[]>(() => {
+    const saved = localStorage.getItem('my_funds');
+    return saved ? JSON.parse(saved) : [];
+  })
+
+  const [form] = Form.useForm();
+
+  //金额转份额
   const loadData = async () => {
+    if (myFunds.length === 0) {
+      setData([]);
+      return;
+    }
+
     setLoading(true)
-    const promises = MY_FUNDS.map(async (fund) => {
+    const promises = myFunds.map(async (fund) => {
       const info = await fetchFundData(fund.code);
       if(!info) return null;
 
       const currentVal = parseFloat(info.gsz);
-
-      const profit = (currentVal - fund.cost) * fund.share
+      // 份额 = 总金额 / 成本价
+      const share = fund.amount / fund.costPrice;
+      // 收益 = (当前估值 - 成本价) * 份额
+      const profit = (currentVal - fund.costPrice) * share
 
       return {
         ...info,
         key:info.fundcode,
-        cost:fund.cost,
-        share:fund.share,
-        profit:parseFloat(profit.toFixed(2))
+        cost:fund.costPrice,
+        share:share,
+        profit:parseFloat(profit.toFixed(2)),
+        investment: fund.amount // 把本金也带上方便展示
       } as FundItem;
     });
 
@@ -45,8 +64,29 @@ function App() {
   };
 
   useEffect(() => {
+    localStorage.setItem('my_funds',JSON.stringify(myFunds));
     loadData();
-  }, []);
+  }, [myFunds]);
+
+  //添加基金
+  const handleAddFund = (values:LocalFund) => {
+    const newFund:LocalFund = {
+      code:values.code,
+      costPrice:values.costPrice,
+      amount:values.amount
+    }
+    setMyFunds([...myFunds,newFund]);
+    setIsModalOpen(false);
+    form.resetFields();
+    message.success('基金添加成功');
+  }
+
+  // 删除基金
+  const handleDeleteFund = (code:string) => {
+    const newFunds = myFunds.filter(item => item.code !==code);
+    setMyFunds(newFunds);
+    message.success('基金删除成功');
+  }
 
   const columns = [
     {title: '基金名称',dataIndex:'name',key:'name'},
@@ -70,13 +110,46 @@ function App() {
           {val > 0 ? '+' : ''}{val}
         </span>
       )
+    },{
+      title:'操作',
+      key:'action',
+      render:(_:any,record:FundItem) => (
+        <Popconfirm
+          title="确定删除该基金吗？"
+          onConfirm={() => handleDeleteFund(record.fundcode)}
+          okText="是"
+          cancelText="否"
+        >
+          <Button type="link" danger icon={<DeleteOutlined/>}></Button>
+        </Popconfirm>
+      )
     }
   ];
 
   
   return (
     <div style={{ padding: '50px', background: '#f0f2f5', minHeight: '100vh' }}>
-      <Card title="我的基金看板 (Mihoyo Prep Ver.)" extra={<Button icon={<ReloadOutlined />} onClick={loadData} loading={loading}>刷新数据</Button>}>
+      <Card 
+        title="我的基金看板 ()" 
+        extra={
+          <>
+            <Button 
+              type="primary" 
+              icon={<PlusOutlined />} 
+              onClick={() => setIsModalOpen(true)} 
+              style={{ marginRight: 8 }}
+            >
+              添加基金
+            </Button>
+            <Button 
+              icon={<ReloadOutlined />} 
+              onClick={loadData} 
+              loading={loading}>
+                刷新数据
+            </Button>
+          </>
+          }
+      >
         
         {/* 顶部总览数据 */}
         <Row gutter={16} style={{ marginBottom: 20 }}>
@@ -104,6 +177,71 @@ function App() {
            Tips: 数据来源天天基金，更新时间: {data[0]?.gztime || '--'}
         </div>
       </Card>
+
+      <Modal 
+        title="添加基金"
+        open={isModalOpen}
+        onCancel={() => setIsModalOpen(false)}
+        footer={null}
+      >
+        <Form
+          form={form} 
+          onFinish={handleAddFund} 
+          layout="vertical">
+          <Form.Item
+            name="code"
+            label="基金代码"
+            rules={[{required:true,message:'请输入基金代码'}]}
+          >
+            <Input
+              style={{ width: '100%' }}
+              placeholder="例如：110022"
+              maxLength={6}
+              allowClear
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="costPrice"
+            label="持仓成本价(元)"
+            rules={[{required:true,message:'请输入持仓成本价'}]}
+          >
+            <InputNumber
+              style={{ width: '100%' }}
+              placeholder="例如：1.23"
+              controls={false}
+              min={0}
+              step={0.01}
+            />
+          </Form.Item>
+          
+          <Form.Item
+            name="amount"
+            label="投入金额(元)"
+            rules={[{required:true,message:'请输入投入金额'}]}
+          >
+            <InputNumber
+              style={{ width: '100%' }}
+              placeholder="例如：1000"
+              controls={false}
+              min={0}
+              step={0.01}
+            />
+          </Form.Item>
+
+          <Form.Item>
+            <Button
+              type="primary"
+              htmlType='submit'
+              block
+              
+            >
+              添加基金
+            </Button>
+          </Form.Item>
+
+        </Form>
+      </Modal>
     </div>
   );
 
