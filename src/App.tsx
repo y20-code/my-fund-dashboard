@@ -1,6 +1,6 @@
 import {useEffect,useState} from 'react';
 import { Table, Card, Tag, Statistic, Row, Col, Button } from 'antd';
-import { ArrowUpOutlined, ArrowDownOutlined, ReloadOutlined } from '@ant-design/icons';
+import { ArrowUpOutlined, ReloadOutlined } from '@ant-design/icons';
 import { fetchFundData } from './services/api';
 import {type FundItem } from './types';
 
