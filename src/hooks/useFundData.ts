@@ -103,13 +103,26 @@ export const useFundData = () => {
         message.success('基金删除成功');
     };
 
+    const handleEditFund = (values:LocalFund) =>{
+        const newMyFunds = myFunds.map(item => {
+            if (item.code === values.code) {
+                return { ...item,...values}
+            }
+            return item;
+        })
+
+        setMyFunds(newMyFunds);
+        message.success('修改成功！');
+    }
+
     // 导出：把 UI 需要的东西暴露出去 (Return)
     return {
         data,           // 表格数据
         loading,        // 加载转圈圈
         loadData,       // 手动刷新函数
         handleAddFund,  // 添加函数
-        handleDeleteFund // 删除函数
+        handleDeleteFund, // 删除函数
+        handleEditFund // 修改函数
     };
 
 

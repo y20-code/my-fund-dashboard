@@ -1,3 +1,4 @@
+import {  useEffect } from 'react';
 import { Modal, Form, Input, InputNumber,Button} from 'antd';
 import type { LocalFund } from '../types';
 
@@ -5,10 +6,22 @@ interface Props {
     open:boolean;
     onClose:() => void;
     onSubmit:(values: LocalFund) => void;
+    initialValues?:LocalFund;
 }
 
-export const FundModal = ({open,onClose,onSubmit} :Props) =>{
+export const FundModal = ({open,onClose,onSubmit,initialValues} :Props) =>{
     const [form] = Form.useForm();
+
+
+    useEffect(() => {
+        if(open){
+            if (initialValues){
+                form.setFieldsValue(initialValues);
+            }else{
+                form.resetFields();
+            }
+        }   
+    },[open,initialValues,form]);
 
     const handleFinish = (value:LocalFund) => {
         onSubmit(value);

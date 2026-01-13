@@ -10,7 +10,8 @@ export default defineConfig({
       '/api':{
         target:'https://fundgz.1234567.com.cn',// 目标：天天基金接口
         changeOrigin:true,
-        rewrite:(path) => path.replace(/^\/api/,'')
+        secure:false,
+        rewrite:(path) => path.replace(/^\/api/,''),
       }
     }
   }

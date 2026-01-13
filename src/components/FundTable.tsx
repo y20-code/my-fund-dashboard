@@ -1,5 +1,5 @@
 import {Table , Tag, Popconfirm,Button} from 'antd';
-import { DeleteOutlined,FireOutlined } from '@ant-design/icons';
+import { DeleteOutlined,FireOutlined,EditOutlined } from '@ant-design/icons';
 
 import { type FundItem } from '../types';
 
@@ -8,9 +8,10 @@ interface Props {
     data:FundItem[];                        // 表格要显示的数据
     loading:boolean;                        // 是否在转圈圈
     onDelete:(code:string) => void;         // 当用户点击删除时，要调用的父级函数
+    onEdit:(record:FundItem) => void;           // 当用户点击编辑时，要调用的父级函数
 }
 
-export const FundTable = ({data,loading,onDelete}:Props) => {
+export const FundTable = ({data,loading,onDelete,onEdit}:Props) => {
     const columns = [
         {title:"基金名称",dataIndex:"name",key:"name"},
         {
@@ -48,9 +49,14 @@ export const FundTable = ({data,loading,onDelete}:Props) => {
             title: '操作',
             key: 'action',
             render: (_: unknown, record: FundItem) => (
-                <Popconfirm title="确定删除？" onConfirm={() => onDelete(record.fundcode)}>
-                <Button type="link" danger icon={<DeleteOutlined />} />
-                </Popconfirm>
+                <>
+                    <Popconfirm title="确认编辑" onConfirm={() => onEdit(record)}>
+                        <Button type="link" danger icon={<EditOutlined/>}></Button>
+                    </Popconfirm>
+                    <Popconfirm title="确定删除？" onConfirm={() => onDelete(record.fundcode)}>
+                        <Button type="link" danger icon={<DeleteOutlined />} />
+                    </Popconfirm>
+                </>
             )
         }
     ];
